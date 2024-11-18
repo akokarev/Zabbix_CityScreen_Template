@@ -1,0 +1,54 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+    - uuid: a571c0d144b14fd4a87a9d9b2aa9fcd6
+      name: Templates/Applications
+  templates:
+    - uuid: 07b7e9d988b04b0085e6721e570b8394
+      template: CityScreen
+      name: CityScreen
+      description: |
+        Мониторинг показов и camshot в CS.
+        
+        (с)2024 Anton Kokarev
+        https://github.com/akokarev/Zabbix_CityScreen_Template
+      groups:
+        - name: Templates/Applications
+      items:
+        - uuid: ade30d8d2474424ca575e7bbb8ba440e
+          name: cs_shows
+          key: 'cs.api.request[{$CS_API_TOKEN},{$CS_FRAME_ID},"False"]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.count
+          triggers:
+            - uuid: 663b669fb4f14cc29c1d92f9b240b268
+              expression: 'nodata(/CityScreen/cs.api.request[{$CS_API_TOKEN},{$CS_FRAME_ID},"False"],30m)=1'
+              name: 'Нет данных от CityScreen'
+              priority: HIGH
+            - uuid: 8ae23be96055434da47ac50609f258c9
+              expression: 'last(/CityScreen/cs.api.request[{$CS_API_TOKEN},{$CS_FRAME_ID},"False"])=0'
+              name: 'Нет показов в CityScreen'
+              priority: HIGH
+        - uuid: 4ef6ad0e50e44429b3e7f55bbc525c37
+          name: cs_camshots
+          key: 'cs.api.request[{$CS_API_TOKEN},{$CS_FRAME_ID},"True"]'
+          delay: '0;h6,9,13'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.count
+          triggers:
+            - uuid: 341f7b603fe24d31ba4d94d355467964
+              expression: 'last(/CityScreen/cs.api.request[{$CS_API_TOKEN},{$CS_FRAME_ID},"True"])=0'
+              name: 'Нет camshot в CityScreen'
+              priority: HIGH
+              manual_close: 'YES'
+      macros:
+        - macro: '{$CS_API_TOKEN}'
+          value: 1234567890abcdefghijklmnoprstuyz
+          description: 'x-auth-token взять из консоли браузера'
+        - macro: '{$CS_FRAME_ID}'
+          value: '0'
+          description: 'ID фрейма, указать у каждого узла свой'
